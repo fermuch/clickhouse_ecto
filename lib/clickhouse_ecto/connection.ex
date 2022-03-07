@@ -114,7 +114,16 @@ defmodule ClickhouseEcto.Connection do
     end)
   end
 
-  def to_constraints(_error), do: []
+  def to_constraints(%Clickhousex.Error{code: "469", message: message}, _opts) do
+    pattern = ~r/(?<= Constraint `)(?<constraint_name>.*?)(?=` for table)/
+
+    case Regex.named_captures(pattern, message) do
+      %{"constraint_name" => constraint} -> [check: constraint]
+      _ -> []
+    end
+  end
+
+  def to_constraints(_error, _opts), do: []
 
   @doc """
   Returns a stream that prepares and executes the given query with `DBConnection`.
@@ -139,7 +148,7 @@ defmodule ClickhouseEcto.Connection do
   @doc false
   def delete_all(query), do: SQL.delete_all(query)
 
-  def insert(prefix, table, header, rows, on_conflict, returning),
+  def insert(prefix, table, header, rows, on_conflict, returning, _opts),
     do: SQL.insert(prefix, table, header, rows, on_conflict, returning)
 
   def update(prefix, table, fields, filters, returning),

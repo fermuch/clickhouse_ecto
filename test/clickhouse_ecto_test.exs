@@ -25,7 +25,7 @@ defmodule ClickhouseEctoTest do
   defp all(query), do: query |> SQL.all() |> IO.iodata_to_binary()
 
   defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning))
+    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
   end
 
   test "from" do
