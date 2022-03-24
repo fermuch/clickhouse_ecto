@@ -7,7 +7,16 @@ defmodule ClickhouseEcto.Storage do
 
     opts = Keyword.put(opts, :database, nil)
 
-    command = ~s[CREATE DATABASE IF NOT EXISTS "#{database}"]
+    cluster = Keyword.get(opts, :cluster)
+
+    opts = Keyword.put(opts, :database, nil)
+
+    command =
+      if is_nil(cluster) do
+        ~s[CREATE DATABASE IF NOT EXISTS "#{database}"]
+      else
+        ~s[CREATE DATABASE IF NOT EXISTS "#{database}" ON CLUSTER '#{cluster}']
+      end
 
     case run_query(command, opts) do
       {:ok, _} ->
@@ -26,7 +35,15 @@ defmodule ClickhouseEcto.Storage do
     database =
       Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
 
-    command = ~s[DROP DATABASE "#{database}"]
+    cluster = Keyword.get(opts, :cluster)
+
+    command =
+      if is_nil(cluster) do
+        ~s[DROP DATABASE "#{database}"]
+      else
+        ~s[DROP DATABASE "#{database}" ON CLUSTER '#{cluster}']
+      end
+
     opts = Keyword.put(opts, :database, nil)
 
     case run_query(command, opts) do
