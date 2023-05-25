@@ -94,6 +94,14 @@ defmodule ClickhouseEcto.Connection do
     execute(conn, %Query{name: "", statement: statement}, params, options)
   end
 
+  def query(conn, statement, params, options) do
+    Clickhousex.query(conn, statement, params, options)
+  end
+
+  def ddl_logs(result) do
+    []
+  end
+
   defp is_no_data_found_bug?({:error, error}, statement) do
     is_dml =
       statement
@@ -150,6 +158,9 @@ defmodule ClickhouseEcto.Connection do
 
   def insert(prefix, table, header, rows, on_conflict, returning, _opts),
     do: SQL.insert(prefix, table, header, rows, on_conflict, returning)
+
+  def insert(prefix, table, header, rows, on_conflict, returning, _placeholder),
+    do: raise("Clickhouse_ecto does not support placeholder in `insert_all`")
 
   def update(prefix, table, fields, filters, returning),
     do: SQL.update(prefix, table, fields, filters, returning)

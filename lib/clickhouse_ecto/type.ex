@@ -51,6 +51,10 @@ defmodule ClickhouseEcto.Type do
     Ecto.UUID.dump(value)
   end
 
+  def decode(value, :boolean) do
+    {:ok, value == 1}
+  end
+
   def decode({date, {h, m, s}}, type)
       when type in [:utc_datetime, :naive_datetime] do
     {:ok, {date, {h, m, s, 0}}}

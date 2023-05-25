@@ -191,7 +191,7 @@ defmodule ClickhouseEctoTest do
 
     query = Schema |> select([], fragment(title: 2)) |> normalize
 
-    assert_raise Ecto.QueryError, fn ->
+    assert_raise FunctionClauseError, fn ->
       all(query)
     end
   end

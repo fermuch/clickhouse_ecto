@@ -27,10 +27,8 @@ defmodule ClickhouseEcto.Query do
     # res = [select, from, join, where, group_by, having, order_by, lock]
     # res = [select, from, join, where, group_by, having, order_by, offset | lock]
     res = [select, from, join, where, group_by, having, combinations, order_by, limit]
-
-    IO.iodata_to_binary(res)
   end
-
+  
   @doc """
   Returns an INSERT for the given `rows` in `table` returning
   the given `returning`.

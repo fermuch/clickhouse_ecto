@@ -4,9 +4,7 @@ defmodule ClickhouseEcto do
   @moduledoc false
   @behaviour Ecto.Adapter.Storage
 
-  use Ecto.Adapters.SQL,
-    driver: :clickhousex,
-    migration_lock: "FOR UPDATE"
+  use Ecto.Adapters.SQL, driver: :clickhousex
 
   alias ClickhouseEcto.Migration
   alias ClickhouseEcto.Storage
@@ -27,6 +25,7 @@ defmodule ClickhouseEcto do
 
   ## Migration
   def supports_ddl_transaction?, do: Migration.supports_ddl_transaction?()
+  def lock_for_migrations(meta, opts, fun), do: Migration.lock_for_migrations(meta, opts, fun)
 
   ## Storage
   @impl Ecto.Adapter.Storage

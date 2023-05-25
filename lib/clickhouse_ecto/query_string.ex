@@ -55,9 +55,9 @@ defmodule ClickhouseEcto.QueryString do
     )
   end
 
-  def from(%{from: %{source: source}} = query, sources) do
+  def from(%{from: %{source: source, hints: hints}} = query, sources) do
     {from, name} = Helpers.get_source(query, sources, 0, source)
-    [" FROM ", from, " AS " | name]
+    [" FROM ", from, " AS ", name, hints(hints)]
   end
 
   def update_fields(query, _sources) do
@@ -87,14 +87,19 @@ defmodule ClickhouseEcto.QueryString do
   end
 
   def on_join_expr({{:., [], [{:&, [], _}, column]}, [], []}) when is_atom(column) do
-    column |> Atom.to_string()
+    " USING " <> Atom.to_string(column)
   end
 
   def on_join_expr({:==, _, [{{_, _, [_, column]}, _, _}, _]}) when is_atom(column) do
-    column |> Atom.to_string()
+    " USING " <> Atom.to_string(column)
   end
+  def on_join_expr(true), do: ""
 
   def join_qual(:inner), do: " INNER JOIN "
+  def join_qual(:inner_lateral), do: " ARRAY JOIN "
+  def join_qual(:cross), do: " CROSS JOIN "
+  def join_qual(:full), do: " FULL JOIN "
+  def join_qual(:left_lateral), do: " LEFT ARRAY JOIN "
   def join_qual(:left), do: " LEFT OUTER JOIN "
   def join_qual(:right), do: " RIGHT OUTER JOIN "
 
@@ -142,7 +147,7 @@ defmodule ClickhouseEcto.QueryString do
     end
   end
 
-  def limit(%Query{offset: nil, limit: nil}, _sources), do: []
+  def limit(%Query{limit: nil}, _sources), do: []
 
   def limit(%Query{offset: nil, limit: %{expr: expr}} = query, sources) do
     [" LIMIT ", expr(expr, sources, query)]
@@ -162,6 +167,17 @@ defmodule ClickhouseEcto.QueryString do
       {:union_all, query} -> [" UNION ALL (", ClickhouseEcto.Query.all(query), ")"]
     end)
   end
+
+  defp hints([_ | _] = hints) do
+    hint_list = Enum.map(hints, &hint/1)
+    |> Enum.intersperse(", ")
+
+    [" ", hint_list]
+  end
+  defp hints([]), do: []
+
+  defp hint(hint_str) when is_binary(hint_str), do: hint_str
+  defp hint({key, val}) when is_atom(key) and is_integer(val), do: [Atom.to_string(key), " ", Integer.to_string(val)]
 
   def boolean(_name, [], _sources, _query), do: []
 
@@ -257,8 +273,10 @@ defmodule ClickhouseEcto.QueryString do
     Connection.all(query)
   end
 
-  def expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
-    Helpers.error!(query, "ClickHouse adapter does not support keyword or interpolated fragments")
+  def expr({:fragment, _, [kw]}, sources, query) when is_list(kw) or tuple_size(kw) == 3 do
+    Enum.reduce(kw, query, fn {key, {op, val}}, query ->
+      expr({op, nil, [key, val]}, sources, query)
+    end)
   end
 
   def expr({:fragment, _, parts}, sources, query) do
@@ -304,7 +322,7 @@ defmodule ClickhouseEcto.QueryString do
   end
 
   def expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
-    ["CAST(", expr(other, sources, query), " AS ", Helpers.ecto_to_db(type), ")"]
+    ["CAST(", expr(other, sources, query), " AS ", Helpers.tagged_to_db(type), ")"]
   end
 
   def expr(nil, _sources, _query), do: "NULL"
@@ -321,6 +339,10 @@ defmodule ClickhouseEcto.QueryString do
 
   def expr(literal, _sources, _query) when is_float(literal) do
     Float.to_string(literal)
+  end
+
+  def expr(literal, _sources, _query) when is_atom(literal) do
+    Atom.to_string(literal)
   end
 
   def interval(count, _interval, sources, query) do

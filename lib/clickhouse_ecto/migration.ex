@@ -7,6 +7,15 @@ defmodule ClickhouseEcto.Migration do
 
   @drops [:drop, :drop_if_exists]
 
+  def lock_for_migrations(meta, _opts, fun) do
+    %{opts: adapter_opts} = meta
+    if Keyword.get(adapter_opts, :migration_lock) do
+      raise "Migration locks are not supported in clickhouse_ecto"
+    else
+      fun.()
+    end
+  end
+
   @doc """
   Receives a DDL command and returns a query that executes it.
   """
