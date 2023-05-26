@@ -22,6 +22,7 @@ defmodule ClickhouseEcto.Connection do
   end
 
   defp query_result({:ok, _query, result}), do: {:ok, result}
+  defp query_result({:ok, result}), do: {:ok, result}
   defp query_result({:error, _} = error), do: error
 
   def ddl_logs(_), do: []
